@@ -215,7 +215,8 @@ async function save(){
   };
 
   setRows(rs=>[item, ...rs]);
-
+setSyncing(false);
+setShowForm(false);
   const res = await post({
     action:'add',
     data:item
@@ -230,9 +231,6 @@ async function save(){
 setSyncing(false);
 setShowForm(false);
 }
-}   // ← これを追加
-
- 
 
   async function del(id){
     if(!confirm('この予約を削除しますか？'))return;
