@@ -202,18 +202,6 @@ async function save(){
   }else{
     const nid = String(_id++);
 
-    const item = {
-      ...form,
-      time: fixedTime,
-      phone: fixedPhone,
-      id: nid,
-      price: Number(form.price),
-      shopCode: form.shop,
-      shimei: form.shimei || 'フリー',
-      place: form.place || '',
-      shopName
-    };
-
     setRows(rs=>[item, ...rs]);
     const res = await post({action:'add', data:item});
 
