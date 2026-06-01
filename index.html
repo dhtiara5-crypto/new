@@ -199,23 +199,37 @@ async function save(){
     const res = await post({action:'update', data:upd});
     msg(res?.success ? '✓ 更新しました' : '⚠ エラー: '+(res?.error||''));
 
-  }else{
-    const nid = String(_id++);
-
-    setRows(rs=>[item, ...rs]);
-    const res = await post({action:'add', data:item});
-
-    if(res?.success){
-      setRows(rs=>rs.map(x=>x.id===nid ? {...x,id:res.id} : x));
-      msg('✓ シートに保存しました');
     }else{
-      msg('⚠ エラー: '+(res?.error||''));
-    }
-  }
+  const nid = String(_id++);
 
-  setSyncing(false);
-  setShowForm(false);
+  const item = {
+    ...form,
+    time: fixedTime,
+    phone: fixedPhone,
+    id: nid,
+    price: Number(form.price),
+    shopCode: form.shop,
+    shimei: form.shimei || 'フリー',
+    place: form.place || '',
+    shopName
+  };
+
+  setRows(rs=>[item, ...rs]);
+
+  const res = await post({
+    action:'add',
+    data:item
+  });
+
+  if(res?.success){
+    setRows(rs=>rs.map(x=>x.id===nid ? {...x,id:res.id} : x));
+    msg('✓ シートに保存しました');
+  }else{
+    msg('⚠ エラー: '+(res?.error||''));
+  }
 }
+
+ 
 
   async function del(id){
     if(!confirm('この予約を削除しますか？'))return;
