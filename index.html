@@ -170,52 +170,65 @@ function App(){
     const c=courses.find(x=>x.l===e.target.value);
     setForm(f=>({...f,course:e.target.value,price:c?String(c.p):f.price}));
   }
-
-  async function save(){
-    if(!form.date||!form.time||!form.customer||!form.phone){msg('⚠ 日付・時間・お客様名・電話番号は必須です');return;}
-    setSyncing(true);
-    const shopName=SHOPS.find(s=>s.code===form.shop)?.name||'';
- 
-    if(editId){
-    const fixedPhone = normalizePhone(form.phone);
-const fixedTime  = formatTime(form.time);
-
-const upd = {
-  ...form,
-  time: fixedTime,
-  phone: fixedPhone,
-  id: editId,
-  price: Number(form.price),
-  shopCode: form.shop,
-  shimei: form.shimei || 'フリー',
-  place: form.place || '',
-  shopName
-}; 
-      setRows(rs=>rs.map(r=>r.id===editId?upd:r));
-      const res=await post({action:'update',data:upd});
-      msg(res?.success?'✓ 更新しました':'⚠ エラー: '+(res?.error||''));
-    }else{
-
-  const nid = String(_id++);
-
-  if(!form.status){
-    form.status = '0';
+async function save(){
+  if(!form.date || !form.time || !form.customer || !form.phone){
+    msg('⚠ 日付・時間・お客様名・電話番号は必須です');
+    return;
   }
 
-  setRows(rs => [item, ...rs]);
+  setSyncing(true);
 
-  const res = await post({
-    action:'add',
-    data:item
-  });
+  const shopName = SHOPS.find(s=>s.code===form.shop)?.name || '';
+  const fixedPhone = normalizePhone(form.phone);
+  const fixedTime = formatTime(form.time);
 
-  if(res?.success){
-    setRows(rs=>rs.map(x=>x.id===nid?{...x,id:res.id}:x));
-    msg('✓ シートに保存しました');
+  if(editId){
+    const upd = {
+      ...form,
+      time: fixedTime,
+      phone: fixedPhone,
+      id: editId,
+      price: Number(form.price),
+      shopCode: form.shop,
+      shimei: form.shimei || 'フリー',
+      place: form.place || '',
+      shopName
+    };
+
+    setRows(rs=>rs.map(r=>r.id===editId ? upd : r));
+    const res = await post({action:'update', data:upd});
+    msg(res?.success ? '✓ 更新しました' : '⚠ エラー: '+(res?.error||''));
+
   }else{
-    msg('⚠ エラー: '+(res?.error||''));
+    const nid = String(_id++);
+
+    const item = {
+      ...form,
+      time: fixedTime,
+      phone: fixedPhone,
+      id: nid,
+      price: Number(form.price),
+      shopCode: form.shop,
+      shimei: form.shimei || 'フリー',
+      place: form.place || '',
+      shopName
+    };
+
+    setRows(rs=>[item, ...rs]);
+    const res = await post({action:'add', data:item});
+
+    if(res?.success){
+      setRows(rs=>rs.map(x=>x.id===nid ? {...x,id:res.id} : x));
+      msg('✓ シートに保存しました');
+    }else{
+      msg('⚠ エラー: '+(res?.error||''));
+    }
   }
+
+  setSyncing(false);
+  setShowForm(false);
 }
+
   async function del(id){
     if(!confirm('この予約を削除しますか？'))return;
     setRows(rs=>rs.filter(r=>r.id!==id));
