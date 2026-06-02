@@ -65,18 +65,18 @@ async function sendPdfMail(id){
 
   alert('PDF送信開始 ID=' + id);
 
-  try {
+  try{
 
     const res = await post({
       action:'sendPdfMail',
       reservationId:String(id)
     });
 
-    alert(JSON.stringify(res));
+    alert('GAS応答=' + JSON.stringify(res));
 
-  } catch(err){
+  }catch(err){
 
-    alert('JSエラー\n' + err);
+    alert('通信エラー=' + err.message);
 
   }
 }
