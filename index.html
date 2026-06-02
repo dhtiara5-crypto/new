@@ -62,26 +62,22 @@ function delRes(id){if(!confirm('この予約を削除しますか？'))return;r
 function chStatus(id,s){var r=rows.find(function(x){return String(x.id)===String(id)});if(!r)return;r.status=s;render();post({action:'update',data:r}).then(function(){msg('→ '+s)})}
 
 async function sendPdfMail(id){
-  if(!id){
-    alert('予約IDがありません');
-    return;
-  }
 
-  if(!confirm('PDFメールを送信しますか？')){
-    return;
-  }
+  alert('PDF送信開始 ID=' + id);
 
-  const res = await post({
-    action:'sendPdfMail',
-    reservationId:String(id)
-  });
+  try {
 
-  if(res.success){
-    alert('PDFメール送信しました');
-    msg('✓ PDFメール送信しました');
-  }else{
-    alert('PDF送信エラー：' + (res.error || '不明なエラー'));
-    msg('⚠ PDF送信エラー');
+    const res = await post({
+      action:'sendPdfMail',
+      reservationId:String(id)
+    });
+
+    alert(JSON.stringify(res));
+
+  } catch(err){
+
+    alert('JSエラー\n' + err);
+
   }
 }
 function exportCSV(){var h='日付,時間,店舗,指名状況,場所,キャスト,お客様名,電話番号,ホテル,部屋番号,コース,割引';var lines=getFiltered().map(function(x){return [x.date,formatTime(x.time),x.shopCode||x.shop||'',x.shimei||'',x.place||'',x.cast,x.customer,normalizePhone(x.phone),x.hotel,x.room,x.course,x.status].join(',')});var blob=new Blob(['\uFEFF'+[h].concat(lines).join('\n')],{type:'text/csv;charset=utf-8'});var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='予約一覧_'+td()+'.csv';a.click()}
