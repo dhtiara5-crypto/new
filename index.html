@@ -56,7 +56,22 @@ form=makeEmpty('T');render();load();
   <input type="checkbox" onchange="sendPdfMail(this, 'R00001')">
   PDFメール送信
 </label>
+async function sendPdfMail(chk,reserveId){
 
+  if(!chk.checked) return;
+
+  const res = await post({
+    action:'sendPdfMail',
+    reservationId:reserveId
+  });
+
+  if(res.success){
+    alert('PDF送信しました');
+  }else{
+    alert(res.error || '送信失敗');
+    chk.checked=false;
+  }
+}
 <script>
 const GAS_URL = 'ここにGASのウェブアプリURL';
 
