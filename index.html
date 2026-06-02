@@ -48,5 +48,43 @@ function chStatus(id,s){var r=rows.find(function(x){return String(x.id)===String
 function exportCSV(){var h='日付,時間,店舗,指名状況,場所,キャスト,お客様名,電話番号,ホテル,部屋番号,コース,料金,割引,メモ';var lines=getFiltered().map(function(x){return [x.date,formatTime(x.time),x.shopCode||x.shop||'',x.shimei||'',x.place||'',x.cast,x.customer,normalizePhone(x.phone),x.hotel,x.room,x.course,x.price,x.status,String(x.memo||'').replace(/,/g,'、')].join(',')});var blob=new Blob(['\uFEFF'+[h].concat(lines).join('\n')],{type:'text/csv;charset=utf-8'});var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='予約一覧_'+td()+'.csv';a.click()}
 form=makeEmpty('T');render();load();
 </script>
+<label>
+  <input type="checkbox" onchange="sendPdfMail(this, 'R00001')">
+  PDFメール送信
+</label>
+
+<script>
+const GAS_URL = 'ここにGASのウェブアプリURL';
+
+async function sendPdfMail(chk, reserveId) {
+  if (!chk.checked) return;
+
+  if (!confirm('PDFメールを送信しますか？')) {
+    chk.checked = false;
+    return;
+  }
+
+  chk.disabled = true;
+
+  const res = await fetch(GAS_URL, {
+    method: 'POST',
+    body: JSON.stringify({
+      action: 'sendPdfMail',
+      reservationId: reserveId
+    })
+  });
+
+  const text = await res.text();
+
+  if (text === 'OK') {
+    alert('PDFメール送信しました');
+  } else {
+    alert('送信失敗：' + text);
+    chk.checked = false;
+  }
+
+  chk.disabled = false;
+}
+</script>
 </body>
 </html>
