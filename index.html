@@ -27,24 +27,7 @@
 <div id="root"></div>
 <div id="modalBg" class="modal-bg"></div>
 <div id="toast" class="toast" style="display:none"></div>
-<script>function keepFormValues(){
-
-  var cast=document.getElementById('inputCast');
-  if(cast){
-    form.cast=cast.value;
-  }
-
-  var shimei=document.getElementById('inputShimei');
-  if(shimei){
-    form.shimei=shimei.value;
-  }
-
-  var hotel=document.querySelector('input[placeholder="ホテル名を入力"]');
-  if(hotel){
-    form.hotel=hotel.value;
-  }
-
-}
+<script>
 window.onerror=function(msg,src,line,col,err){document.getElementById('root').innerHTML='<div class="error"><b>画面エラー</b>\n'+msg+'\n行:'+line+' 列:'+col+'</div>';};
 var GAS_URL='https://script.google.com/macros/s/AKfycbwfWqmkUPUi4Q2bwwSi01lW4xqCgtb84Ut6MpuwJDgHr7oYR11y_CTQHOosdZNxSA7N/exec';
 var SHOPS=[{code:'T',name:'ティアラ'},{code:'C',name:'キュート'}];
@@ -66,31 +49,52 @@ function post(payload){return fetch(GAS_URL,{method:'POST',redirect:'follow',bod
 function load(){conn='connecting';syncing=true;render();fetch(GAS_URL,{redirect:'follow'}).then(function(r){return r.text()}).then(function(t){var d;try{d=JSON.parse(t)}catch(e){throw new Error('GASの応答がJSONではありません\n'+t.slice(0,300))}if(d.success){rows=(d.data||[]).map(function(x){x.phone=normalizePhone(x.phone);x.shopCode=x.shopCode||x.shop||'';x.shimei=x.shimei||'フリー';x.place=x.place||'';x.time=formatTime(x.time);return x});conn='ok';msg('✓ '+rows.length+'件を読み込みました')}else{conn='error';errMsg=d.error||'不明なエラー'}}).catch(function(e){conn='error';errMsg=e.message}).finally(function(){syncing=false;render()})}
 function getFiltered(){var list=rows.filter(function(r){if(shopFilter!=='all'&&(r.shopCode||r.shop)!==shopFilter)return false;if(todayOnly&&r.date!==td())return false;if(searchText){var q=searchText.toLowerCase();return [r.customer,r.cast,r.phone,r.hotel,r.room,r.place,r.shimei].some(function(v){return String(v||'').toLowerCase().indexOf(q)>=0})}return true});list.sort(function(a,b){return String(a.date+a.time)<String(b.date+b.time)?1:-1});return list}
 function render(){var root=document.getElementById('root');var todayRows=rows.filter(function(r){return r.date===td()});var cntT=todayRows.filter(function(r){return (r.shopCode||r.shop)==='T'}).length;var cntC=todayRows.filter(function(r){return (r.shopCode||r.shop)==='C'}).length;var filtered=getFiltered();var html='';html+='<div class="topbar"><b class="title">予約管理</b><span class="small"><span class="dot '+(conn==='ok'?'ok':conn==='error'?'err':'')+'"></span>'+(conn==='ok'?'シート連携中':conn==='error'?'接続エラー':'接続中...')+'</span><button class="btn-green" onclick="load()">再読込</button><button onclick="exportCSV()">CSV</button></div>';html+='<div class="stat-row"><div class="stat"><div class="stat-label">本日 全体</div><div class="stat-val">'+todayRows.length+' 件</div></div><div class="stat"><div class="stat-label">ティアラ</div><div class="stat-val">'+cntT+' 件</div></div><div class="stat"><div class="stat-label">キュート</div><div class="stat-val">'+cntC+' 件</div></div></div>';html+='<div class="tabs"><span class="tab '+(shopFilter==='all'?'active-all':'')+'" onclick="shopFilter=\'all\';render()">全店舗</span><span class="tab '+(shopFilter==='T'?'active-T':'')+'" onclick="shopFilter=\'T\';render()">ティアラ</span><span class="tab '+(shopFilter==='C'?'active-C':'')+'" onclick="shopFilter=\'C\';render()">キュート</span><span style="margin-left:auto"></span><button class="btn-t" onclick="openNew(\'T\')">＋T</button><button class="btn-c" onclick="openNew(\'C\')">＋C</button></div>';html+='<div class="toolbar"><input style="flex:1;min-width:170px" placeholder="名前・キャスト・電話・ホテルで検索" value="'+esc(searchText)+'" oninput="searchText=this.value;render()"><button class="'+(todayOnly?'btn-primary':'')+'" onclick="todayOnly=!todayOnly;render()">'+(todayOnly?'✓ 当日':'当日のみ')+'</button><span class="small">'+filtered.length+'件</span></div>';if(conn==='error')html+='<div class="error">'+esc(errMsg)+'</div>';html+='<div class="list">';if(conn==='connecting'){html+='<div class="empty">Google Sheetsに接続中...</div>'}else if(filtered.length===0){html+='<div class="empty">予約が見つかりません</div>'}else{filtered.forEach(function(r){var sc=r.shopCode||r.shop||'';html+='<div class="card shop-'+esc(sc)+'"><div class="row between"><div class="row"><span class="badge badge-'+esc(sc)+'">'+esc(shopName(sc))+'</span><b>'+esc(toJp(r.date))+'</b><b style="color:#534AB7">'+esc(formatTime(r.time))+'</b><span class="badge">'+esc(r.status||'0')+'</span></div><div><button onclick="openEdit(\''+esc(r.id)+'\')">編集</button> <button class="btn-green" onclick="sendPdfMail(\''+esc(r.id)+'\')">📧PDF送信</button> <button class="btn-danger" onclick="delRes(\''+esc(r.id)+'\')">削除</button></div></div><div class="body"><div><strong>'+esc(r.customer||'－')+'</strong>　☎ '+esc(normalizePhone(r.phone)||'－')+'</div><div>キャスト：<strong>'+esc(r.cast||'－')+'</strong></div><div>指名状況：<strong>'+esc(r.shimei||'フリー')+'</strong></div><div>場所：<strong>'+esc(r.place||'－')+'</strong></div><div>'+esc(r.hotel||'－')+'　<strong>'+(r.room?esc(r.room)+'号室':'－')+'</strong></div><div>コース：<strong>'+esc(r.course||'－')+'</strong></div></div><div class="row" style="border-top:1px solid #eee;margin-top:8px;padding-top:8px">';STATUS.forEach(function(s){html+='<button class="'+(r.status===s?'btn-primary':'')+'" onclick="chStatus(\''+esc(r.id)+'\',\''+esc(s)+'\')">'+esc(s)+'</button>'});html+='</div>'+'</div>'})}html+='</div>';root.innerHTML=html;renderModal()}
-function renderModal(){keepFormValues(); var bg=document.getElementById('modalBg');if(!showForm){bg.className='modal-bg';bg.innerHTML='';return}var courses=COURSES_BY_SHOP[form.shop||'T']||COURSES_BY_SHOP.T;var html='<div class="modal"><div class="row between" style="margin-bottom:16px"><h3>'+(editId?'予約を編集':'新規予約登録')+'</h3><button onclick="closeForm()">×</button></div><div class="form-grid"><div class="span2"><label>店舗</label><div class="row"><button class="'+(form.shop==='T'?'btn-t':'')+'" style="flex:1" onclick="setShop(\'T\')">ティアラ</button><button class="'+(form.shop==='C'?'btn-c':'')+'" style="flex:1" onclick="setShop(\'C\')">キュート</button></div></div>'+field('date','日付 *','date')+field('time','時間 *','time')+field('customer','お客様名 *','text')+field('phone','電話番号 *','tel')+'
-<div>
-<label>キャスト</label>
-<input id="inputCast" list="cast-list" value="'+esc(form.cast||'')+'" oninput="form.cast=this.value">
-<datalist id="cast-list">
-'+CASTS.map(function(c){return'<option value="'+esc(c)+'">'}).join('')+'
-</datalist>
-</div><div>
-<label>指名状況</label>
-<select id="inputShimei" onchange="form.shimei=this.value">
-'+['フリー','写指','本指','特割'].map(function(v){
-return '<option '+((form.shimei||'フリー')===v?'selected':'')+' value="'+v+'">'+v+'</option>'
-}).join('')+'
-</select>
-</div>'+field('place','場所','text')+'<div><label>割引</label><select onchange="form.status=this.value">'+STATUS.map(function(v){return'<option '+(form.status===v?'selected':'')+' value="'+v+'">'+(v==='0'?'割引なし':v+'円')+'</option>'}).join('')+'</select></div><div><label>ホテル</label><input type="text" value="'+esc(form.hotel||'')+'" oninput="form.hotel=this.value" placeholder="ホテル名を入力"></div>'+field('room','部屋番号','text')+'<div><label>コース</label><select onchange="setCourse(this.value)">'+courses.map(function(c){return'<option '+(form.course===c.l?'selected':'')+' value="'+c.l+'">'+c.l+'</option>'}).join('')+'</select></div></div><div class="form-actions"><button onclick="closeForm()">キャンセル</button><button class="btn-primary" onclick="save()" '+(syncing?'disabled':'')+'>登録する</button></div></div>';bg.innerHTML=html;bg.className='modal-bg show'}
-function field(name,label,type){return'<div><label>'+label+'</label><input type="'+type+'" value="'+esc(form[name])+'" oninput="setFormField(\''+name+'\',this.value)"></div>'}
+function keepFormValues(){
+  if(!showForm) return;
+  var el;
+  el=document.getElementById('inputDate'); if(el) form.date=el.value;
+  el=document.getElementById('inputTime'); if(el) form.time=el.value;
+  el=document.getElementById('inputCustomer'); if(el) form.customer=el.value;
+  el=document.getElementById('inputPhone'); if(el) form.phone=normalizePhone(el.value);
+  el=document.getElementById('inputCast'); if(el) form.cast=el.value;
+  el=document.getElementById('inputShimei'); if(el) form.shimei=el.value;
+  el=document.getElementById('inputPlace'); if(el) form.place=el.value;
+  el=document.getElementById('inputStatus'); if(el) form.status=el.value;
+  el=document.getElementById('inputHotel'); if(el) form.hotel=el.value;
+  el=document.getElementById('inputRoom'); if(el) form.room=el.value;
+  el=document.getElementById('inputCourse'); if(el) form.course=el.value;
+}
+function renderModal(){
+  keepFormValues();
+  var bg=document.getElementById('modalBg');
+  if(!showForm){bg.className='modal-bg';bg.innerHTML='';return}
+  var courses=COURSES_BY_SHOP[form.shop||'T']||COURSES_BY_SHOP.T;
+  var html='';
+  html+='<div class="modal">';
+  html+='<div class="row between" style="margin-bottom:16px"><h3>'+(editId?'予約を編集':'新規予約登録')+'</h3><button onclick="closeForm()">×</button></div>';
+  html+='<div class="form-grid">';
+  html+='<div class="span2"><label>店舗</label><div class="row"><button class="'+(form.shop==='T'?'btn-t':'')+'" style="flex:1" onclick="setShop(\'T\')">ティアラ</button><button class="'+(form.shop==='C'?'btn-c':'')+'" style="flex:1" onclick="setShop(\'C\')">キュート</button></div></div>';
+  html+=field('date','日付 *','date','inputDate');
+  html+=field('time','時間 *','time','inputTime');
+  html+=field('customer','お客様名 *','text','inputCustomer');
+  html+=field('phone','電話番号 *','tel','inputPhone');
+  html+='<div><label>キャスト</label><input id="inputCast" list="cast-list" value="'+esc(form.cast||'')+'" oninput="form.cast=this.value" onchange="form.cast=this.value"><datalist id="cast-list">'+CASTS.map(function(c){return'<option value="'+esc(c)+'">'}).join('')+'</datalist></div>';
+  html+='<div><label>指名状況</label><select id="inputShimei" onchange="form.shimei=this.value" oninput="form.shimei=this.value">'+['フリー','写指','本指','特割'].map(function(v){return'<option '+((form.shimei||'フリー')===v?'selected':'')+' value="'+v+'">'+v+'</option>'}).join('')+'</select></div>';
+  html+=field('place','場所','text','inputPlace');
+  html+='<div><label>割引</label><select id="inputStatus" onchange="form.status=this.value" oninput="form.status=this.value">'+STATUS.map(function(v){return'<option '+((form.status||'0')===v?'selected':'')+' value="'+v+'">'+(v==='0'?'割引なし':v+'円')+'</option>'}).join('')+'</select></div>';
+  html+='<div><label>ホテル</label><input id="inputHotel" type="text" value="'+esc(form.hotel||'')+'" oninput="form.hotel=this.value" onchange="form.hotel=this.value" placeholder="ホテル名を入力"></div>';
+  html+=field('room','部屋番号','text','inputRoom');
+  html+='<div><label>コース</label><select id="inputCourse" onchange="setCourse(this.value)" oninput="setCourse(this.value)">'+courses.map(function(c){return'<option '+((form.course||'')===c.l?'selected':'')+' value="'+c.l+'">'+c.l+'</option>'}).join('')+'</select></div>';
+  html+='</div>';
+  html+='<div class="form-actions"><button onclick="closeForm()">キャンセル</button><button class="btn-primary" onclick="save()" '+(syncing?'disabled':'')+'>登録する</button></div>';
+  html+='</div>';
+  bg.innerHTML=html;
+  bg.className='modal-bg show';
+}
+function field(name,label,type,id){return'<div><label>'+label+'</label><input id="'+(id||('input_'+name))+'" type="'+type+'" value="'+esc(form[name]||'')+'" oninput="setFormField(\''+name+'\',this.value)" onchange="setFormField(\''+name+'\',this.value)"></div>'}
 function setFormField(k,v){if(k==='phone')v=normalizePhone(v);form[k]=v}
-function setShop(s){
-  var c=COURSES_BY_SHOP[s][0];
-  form.shop=s;
-  form.course=c.l;
-}
-function setCourse(v){
-  form.course=v;
-}
+function setShop(s){keepFormValues();var c=COURSES_BY_SHOP[s][0];form.shop=s;form.course=c.l;renderModal()}
+function setCourse(v){form.course=v}
 function openNew(shop){form=makeEmpty(shop);editId=null;showForm=true;renderModal()}
 function openEdit(id){var r=rows.find(function(x){return String(x.id)===String(id)});if(!r)return;form=Object.assign(makeEmpty(r.shopCode||r.shop||'T'),r,{
   shop:r.shopCode||r.shop||'T',
@@ -98,7 +102,7 @@ function openEdit(id){var r=rows.find(function(x){return String(x.id)===String(i
   shimei:r.shimei||'フリー'
 });editId=r.id;showForm=true;renderModal()}
 function closeForm(){showForm=false;renderModal()}
-async function save(){if(!form.date||!form.time||!form.customer||!form.phone){msg('⚠ 日付・時間・お客様名・電話番号は必須です');return}syncing=true;renderModal();var shop=SHOPS.find(function(s){return s.code===form.shop});var base=Object.assign({},form,{time:formatTime(form.time),phone:normalizePhone(form.phone),shopCode:form.shop,shimei:form.shimei||'フリー',place:form.place||'',status:form.status||'0',shopName:shop?shop.name:''});if(editId){var upd=Object.assign({},base,{id:editId});rows=rows.map(function(r){return String(r.id)===String(editId)?upd:r});var res=await post({action:'update',data:upd});msg(res.success?'✓ 更新しました':'⚠ エラー: '+(res.error||''))}else{var nid=String(_id++);var item=Object.assign({},base,{id:nid});rows.unshift(item);var res2=await post({action:'add',data:item});if(res2.success){rows=rows.map(function(x){return x.id===nid?Object.assign({},x,{id:res2.id}):x});msg('✓ シートに保存しました')}else{msg('⚠ エラー: '+(res2.error||''))}}syncing=false;showForm=false;render()}
+async function save(){keepFormValues();if(!form.date||!form.time||!form.customer||!form.phone){msg('⚠ 日付・時間・お客様名・電話番号は必須です');return}syncing=true;renderModal();var shop=SHOPS.find(function(s){return s.code===form.shop});var base=Object.assign({},form,{time:formatTime(form.time),phone:normalizePhone(form.phone),shopCode:form.shop,shimei:form.shimei||'フリー',place:form.place||'',status:form.status||'0',shopName:shop?shop.name:''});if(editId){var upd=Object.assign({},base,{id:editId});rows=rows.map(function(r){return String(r.id)===String(editId)?upd:r});var res=await post({action:'update',data:upd});msg(res.success?'✓ 更新しました':'⚠ エラー: '+(res.error||''))}else{var nid=String(_id++);var item=Object.assign({},base,{id:nid});rows.unshift(item);var res2=await post({action:'add',data:item});if(res2.success){rows=rows.map(function(x){return x.id===nid?Object.assign({},x,{id:res2.id}):x});msg('✓ シートに保存しました')}else{msg('⚠ エラー: '+(res2.error||''))}}syncing=false;showForm=false;render()}
 function delRes(id){if(!confirm('この予約を削除しますか？'))return;rows=rows.filter(function(r){return String(r.id)!==String(id)});render();post({action:'delete',id:String(id)}).then(function(res){msg(res.success?'✓ 削除しました':'⚠ エラー: '+(res.error||''))})}
 function chStatus(id,s){var r=rows.find(function(x){return String(x.id)===String(id)});if(!r)return;r.status=s;render();post({action:'update',data:r}).then(function(){msg('→ '+s)})}
 
