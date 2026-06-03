@@ -27,7 +27,24 @@
 <div id="root"></div>
 <div id="modalBg" class="modal-bg"></div>
 <div id="toast" class="toast" style="display:none"></div>
-<script>
+<script>function keepFormValues(){
+
+  var cast=document.getElementById('inputCast');
+  if(cast){
+    form.cast=cast.value;
+  }
+
+  var shimei=document.getElementById('inputShimei');
+  if(shimei){
+    form.shimei=shimei.value;
+  }
+
+  var hotel=document.querySelector('input[placeholder="ホテル名を入力"]');
+  if(hotel){
+    form.hotel=hotel.value;
+  }
+
+}
 window.onerror=function(msg,src,line,col,err){document.getElementById('root').innerHTML='<div class="error"><b>画面エラー</b>\n'+msg+'\n行:'+line+' 列:'+col+'</div>';};
 var GAS_URL='https://script.google.com/macros/s/AKfycbwfWqmkUPUi4Q2bwwSi01lW4xqCgtb84Ut6MpuwJDgHr7oYR11y_CTQHOosdZNxSA7N/exec';
 var SHOPS=[{code:'T',name:'ティアラ'},{code:'C',name:'キュート'}];
@@ -66,8 +83,14 @@ return '<option '+((form.shimei||'フリー')===v?'selected':'')+' value="'+v+'"
 </div>'+field('place','場所','text')+'<div><label>割引</label><select onchange="form.status=this.value">'+STATUS.map(function(v){return'<option '+(form.status===v?'selected':'')+' value="'+v+'">'+(v==='0'?'割引なし':v+'円')+'</option>'}).join('')+'</select></div><div><label>ホテル</label><input type="text" value="'+esc(form.hotel||'')+'" oninput="form.hotel=this.value" placeholder="ホテル名を入力"></div>'+field('room','部屋番号','text')+'<div><label>コース</label><select onchange="setCourse(this.value)">'+courses.map(function(c){return'<option '+(form.course===c.l?'selected':'')+' value="'+c.l+'">'+c.l+'</option>'}).join('')+'</select></div></div><div class="form-actions"><button onclick="closeForm()">キャンセル</button><button class="btn-primary" onclick="save()" '+(syncing?'disabled':'')+'>登録する</button></div></div>';bg.innerHTML=html;bg.className='modal-bg show'}
 function field(name,label,type){return'<div><label>'+label+'</label><input type="'+type+'" value="'+esc(form[name])+'" oninput="setFormField(\''+name+'\',this.value)"></div>'}
 function setFormField(k,v){if(k==='phone')v=normalizePhone(v);form[k]=v}
-function setShop(s){var c=COURSES_BY_SHOP[s][0];form.shop=s;form.course=c.l;renderModal()}
-function setCourse(v){var c=(COURSES_BY_SHOP[form.shop]||[]).find(function(x){return x.l===v});form.course=v;renderModal()}
+function setShop(s){
+  var c=COURSES_BY_SHOP[s][0];
+  form.shop=s;
+  form.course=c.l;
+}
+function setCourse(v){
+  form.course=v;
+}
 function openNew(shop){form=makeEmpty(shop);editId=null;showForm=true;renderModal()}
 function openEdit(id){var r=rows.find(function(x){return String(x.id)===String(id)});if(!r)return;form=Object.assign(makeEmpty(r.shopCode||r.shop||'T'),r,{
   shop:r.shopCode||r.shop||'T',
